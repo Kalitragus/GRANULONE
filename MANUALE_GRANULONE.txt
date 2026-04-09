@@ -1,0 +1,381 @@
+═══════════════════════════════════════════════════════════════════════════════
+                           GRANULONE - MANUALE UTENTE
+                         Campionatore Granulare Web-Based
+═══════════════════════════════════════════════════════════════════════════════
+
+INDICE
+------
+1. Avvio dell'Applicazione
+2. Caricamento Audio
+3. Controlli Globali
+4. Sistema di Snap e Quantizzazione
+5. Gestione Slice
+6. Parametri per Slice
+7. Registrazione
+8. Consigli d'Uso
+9. Note Tecniche
+
+═══════════════════════════════════════════════════════════════════════════════
+
+1. AVVIO DELL'APPLICAZIONE
+---------------------------
+
+Per avviare Granulone:
+
+1. Apri un terminale nella directory del progetto
+2. Esegui: python3 -m http.server
+3. Apri il browser a: http://localhost:8000/public/index.html
+
+Requisiti:
+- Browser moderno (Chrome, Firefox, Safari, Edge)
+- Web Audio API supportata
+- Per la registrazione: localhost o protocollo HTTPS
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+2. CARICAMENTO AUDIO
+---------------------
+
+Formati Supportati: WAV, AIFF, MP3
+
+Procedura:
+1. Clicca su "Carica campione (WAV/AIFF/MP3)"
+2. Seleziona il file audio
+3. Il campione viene caricato e appare nella forma d'onda
+4. Viene creato automaticamente uno slice iniziale
+
+La forma d'onda mostra:
+- Visualizzazione completa del campione
+- Range dello slice attivo evidenziato
+- Posizione del pointer
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+3. CONTROLLI GLOBALI
+---------------------
+
+Questi parametri influenzano tutti gli slice:
+
+DENSITÀ (10-400 ms)
+- Intervallo base tra i grani
+- Valori più bassi = maggiore densità di grani
+- Default: 180 ms
+
+DURATA GRANO (20-5000 ms)
+- Lunghezza di ogni singolo grano
+- Determina la texture sonora
+- Default: 180 ms
+
+VOLUME MASTER (0-100%)
+- Volume generale dell'output
+- Default: 80%
+
+LFO VELOCITÀ (0-10 Hz)
+- Modula il volume master ciclicamente
+- 0 = LFO disattivato
+- Default: 0 Hz
+
+FINESTRA INVILUPPO
+- Hann: forma d'onda sinusoidale (smooth)
+- Triangolare: attack/decay lineare
+- Gaussiana: campana di Gauss (molto smooth)
+- Rettangolare: nessun fade (può produrre click)
+- Default: Hann
+
+SLICE MIX (0-100%)
+- Quantizzazione del pitch verso scala musicale
+- 0% = pitch libero
+- 100% = pitch quantizzato alla scala maggiore
+- Basato sulla Nota fondamentale
+
+NOTA FONDAMENTALE
+- Tonica della scala per la quantizzazione
+- Usato quando Slice Mix > 0%
+- Default: Do (C)
+
+MUTE CAMPIONE PRINCIPALE
+- Silenzia il campione originale non processato
+- Utile per ascoltare solo la sintesi granulare
+- Default: disattivato
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+4. SISTEMA DI SNAP E QUANTIZZAZIONE
+------------------------------------
+
+I controlli di snap aiutano a sincronizzare gli slice su una griglia temporale.
+
+BPM (20-300)
+- Imposta il tempo in battiti per minuto
+- Usato per calcolare la griglia delle battute
+- Default: 120 BPM
+
+DIVISIONE
+- 1/4 (quarti): nota da 1/4
+- 1/8 (ottavi): nota da 1/8
+- 1/16 (sedicesimi): nota da 1/16 ← Default
+- 1/32 (trentaduesimi): nota da 1/32
+
+SNAP GRIGLIA
+- Off: nessuno snap
+- 10 ms, 50 ms, 100 ms, 250 ms, 500 ms
+- Snap a intervalli fissi di millisecondi
+- Default: 50 ms
+
+SNAP A BATTUTE (checkbox)
+- Quando attivo: snap basato su BPM + Divisione
+- Quando disattivo: snap basato su Snap Griglia
+- Default: disattivato
+
+QUANTIZZA SLICES (pulsante)
+- Applica lo snap a TUTTI gli slice esistenti
+- Usa la modalità corrente (battute o griglia)
+- Snappa i punti Start e End di ogni slice
+- Utile per sincronizzare rapidamente più slice
+
+Come Usare:
+1. Imposta BPM del tuo brano
+2. Scegli la divisione ritmica
+3. Attiva "Snap a battute" (o scegli Snap Griglia)
+4. Crea/modifica slice → vengono snappati automaticamente
+5. Oppure: clicca "Quantizza Slices" per snappare tutti gli slice
+
+Nota per Futuri Sviluppi:
+Il sistema è progettato per integrare clock MIDI/CV esterni.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+5. GESTIONE SLICE
+------------------
+
+AGGIUNGERE SLICE
+- Pulsante "+ Slice" crea un nuovo slice
+- Inizialmente copre l'intero campione
+- Ogni slice può essere configurato indipendentemente
+
+SELEZIONARE SLICE
+- Clicca sulla card dello slice per selezionarlo
+- Lo slice attivo è evidenziato con bordo blu
+- La forma d'onda mostra il range dello slice selezionato
+
+RIMUOVERE SLICE
+- Pulsante "Elimina" sulla card dello slice
+- La rimozione è immediata e irreversibile
+
+MUTE SLICE
+- Pulsante "Mute" sulla card dello slice
+- Slice mutati appaiono sbiaditi
+- Possono essere riattivati con "Unmute"
+
+RINOMINARE SLICE
+- Campo di testo in alto sulla card
+- Il nome è puramente organizzativo
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+6. PARAMETRI PER SLICE
+-----------------------
+
+Ogni slice ha i propri parametri indipendenti:
+
+--- PARAMETRI PRIMARI (evidenziati in blu) ---
+
+POINTER (0-100%)
+- Posizione di lettura all'interno dello slice
+- 0% = inizio dello slice
+- 100% = fine dello slice
+- I grani vengono generati attorno a questa posizione
+
+RANDOM PITCH (0-12 semitoni)
+- Variazione casuale del pitch per ogni grano
+- Crea texture più ricche e imprevedibili
+- 0 = nessuna variazione
+- 12 semitoni = ±1 ottava
+
+SPRAY (0-100%)
+- Variazione casuale della posizione di lettura
+- 0% = lettura precisa al Pointer
+- 100% = lettura casuale su tutto lo slice
+- Crea texture più dense e caotiche
+
+SPAZIATURA GRANI (10-400 ms)
+- Intervallo tra grani per questo slice
+- Sovrascrive il valore globale Densità
+- Permette densità diverse per ogni slice
+
+--- PARAMETRI STANDARD ---
+
+OVERLAP (0-95%)
+- Sovrapposizione tra grani consecutivi
+- 0% = grani separati (può essere ritmico)
+- 70% = default, smooth
+- 95% = massima sovrapposizione, molto denso
+
+PITCH (-12 a +12 semitoni)
+- Trasposizione fissa dello slice
+- Influenzato da Slice Mix (quantizzazione)
+- ±12 semitoni = ±1 ottava
+
+START (0 - durata campione, in ms)
+- Punto di inizio dello slice nel campione
+- Influenzato dallo snap se attivo
+- Minimo 10 ms prima dell'End
+
+END (0 - durata campione, in ms)
+- Punto di fine dello slice nel campione
+- Influenzato dallo snap se attivo
+- Minimo 10 ms dopo lo Start
+
+GAIN (0-100%)
+- Volume dello slice
+- Indipendente dal Master Gain
+- Default: 100%
+
+--- EFFETTI ---
+
+DELAY TIME (0-2500 ms)
+- Tempo di ritardo dell'effetto delay
+- 0 = delay disattivato
+
+DELAY FEEDBACK (0-95%)
+- Quantità di feedback del delay
+- Valori alti creano ripetizioni multiple
+- Max 95% per stabilità
+
+DELAY MIX (0-100%)
+- Bilanciamento dry/wet del delay
+- 0% = solo segnale originale
+- 100% = solo delay
+
+REVERB MIX (0-100%)
+- Quantità di riverbero applicato
+- 0% = nessun riverbero
+- 100% = solo riverbero
+- Il riverbero è generato algoritmicamente
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+7. REGISTRAZIONE
+-----------------
+
+Disponibile solo su localhost o HTTPS.
+
+AVVIARE REGISTRAZIONE
+- Pulsante "Rec" (visibile solo se disponibile)
+- Diventa "Stop Rec" durante la registrazione
+- Indica lo stato con colore rosso
+
+FERMARE E SALVARE
+- Clicca "Stop Rec" per terminare
+- Appare il link "Scarica ultimo take"
+- Clicca per scaricare il file audio (formato WebM)
+
+Nota: La registrazione cattura tutto l'output audio, inclusi tutti gli slice
+e gli effetti applicati.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+8. CONSIGLI D'USO
+------------------
+
+PER TEXTURE AMBIENT
+- Durata Grano: 500-3000 ms
+- Densità: 150-300 ms
+- Overlap: 80-95%
+- Spray: 20-50%
+- Random Pitch: 100-300 cents
+
+PER RITMI GLITCHY
+- Durata Grano: 20-80 ms
+- Densità: 50-150 ms
+- Overlap: 0-30%
+- Spray: 0-20%
+- Finestra: Rettangolare o Triangolare
+
+PER EFFETTI GRANULARI ESTREMI
+- Durata Grano: molto corta (20-50 ms)
+- Densità: molto alta (10-50 ms)
+- Random Pitch: alto (500-1200 cents)
+- Spray: 50-100%
+- LFO: 2-8 Hz
+
+SINCRONIZZAZIONE MULTI-SLICE
+1. Imposta il BPM del tuo progetto
+2. Crea più slice
+3. Usa "Quantizza Slices" per allinearli
+4. Regola Pointer e Spray per varietà
+5. Usa Pitch per armonia
+
+PERFORMANCE LIVE
+- Pre-configura slice con impostazioni diverse
+- Usa Mute per cambiare tra slice
+- Modula LFO per movimento
+- Usa Pointer per navigare nel sample
+- Delay e Reverb per spazialità
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+9. NOTE TECNICHE
+-----------------
+
+ARCHITETTURA AUDIO
+- Engine: Web Audio API
+- Sample Rate: 44100 Hz
+- Latency Hint: interactive
+- Window Curves: 128 campioni
+
+LIMITI
+- Durata Slice Minima: 10 ms
+- Grain Interval Minimo: 5 ms
+- Max Delay Time: 2500 ms
+- Max Delay Feedback: 95%
+
+PERFORMANCE
+- Compensazione automatica del gain per densità di grani
+- Cache dei buffer per slice
+- Ottimizzazione della CPU con look-ahead scheduling
+- Gestione automatica dello stato AudioContext
+
+BROWSER COMPATIBILITY
+- Chrome/Edge: pieno supporto
+- Firefox: pieno supporto
+- Safari: pieno supporto (registrazione solo su localhost/HTTPS)
+- Opera: pieno supporto
+
+SVILUPPI FUTURI
+- Integrazione MIDI Clock per sync esterno
+- Integrazione CV/Gate per dispositivi hardware
+- Il BPM può essere aggiornato da sorgenti esterne
+- Architettura pronta per clock sync
+
+TROUBLESHOOTING
+- Audio non si sente: verifica che il volume master non sia a 0
+- Click nel suono: usa finestre Hann o Gaussian
+- CPU alta: riduci numero di slice o aumenta grain interval
+- Registrazione non disponibile: usa localhost o HTTPS
+
+═══════════════════════════════════════════════════════════════════════════════
+
+CREDITI
+-------
+Granulone - Campionatore Granulare
+Sviluppato con Web Audio API
+🤖 Generated with Claude Code
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Per domande, bug reports o contributi:
+https://github.com/anthropics/claude-code/issues
+
+Versione: 1.0
+Data: Ottobre 2025
+
+═══════════════════════════════════════════════════════════════════════════════
