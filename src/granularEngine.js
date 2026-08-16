@@ -140,7 +140,10 @@ export default class GranularEngine {
     this.mainSampleMuted = false;
     this._mainSamplePlaybackEnabled = false;
 
-    this._animationFrame = null;
+    this._schedulerWorker = null;
+    this._schedulerTimeout = null;
+    this._schedulerIntervalMs = 25; // tick del clock di scheduling
+    this._lookAhead = 0.2; // seconds: finestra di pre-scheduling sull'audio clock
     this._tick = this._tick.bind(this);
   }
 
@@ -465,12 +468,6 @@ export default class GranularEngine {
       this._stopMainSamplePlayback();
     }
     const startTime = this.audioContext.currentTime;
-    const interval = this._computeSliceInterval(slice);
-
-    if (!Number.isFinite(interval) || interval <= 0) {
-      this._sliceTimers.set(slice.id, now + 0.05);
-      return;
-    }
 
     this.slices.forEach(slice => {
       this._sliceTimers.set(slice.id, startTime);
@@ -478,7 +475,7 @@ export default class GranularEngine {
     if (this.audioContext.state === "suspended") {
       this.audioContext.resume();
     }
-    this._animationFrame = requestAnimationFrame(this._tick);
+    this._startScheduler();
     this._updateOutputState();
   }
 
@@ -488,11 +485,60 @@ export default class GranularEngine {
     this._mainSamplePlaybackEnabled = false;
     this._stopAllSliceGrains();
     this._stopMainSamplePlayback();
-    if (this._animationFrame) {
-      cancelAnimationFrame(this._animationFrame);
-      this._animationFrame = null;
-    }
+    this._stopScheduler();
     this._updateOutputState();
+  }
+
+  _startScheduler() {
+    this._stopScheduler();
+    const intervalMs = this._schedulerIntervalMs;
+
+    if (typeof Worker !== "undefined" && typeof Blob !== "undefined" && typeof URL !== "undefined") {
+      try {
+        const workerSource =
+          "let id=null;" +
+          "onmessage=function(e){" +
+          "if(e.data&&e.data.cmd==='start'){if(id)clearInterval(id);id=setInterval(function(){postMessage('tick');},e.data.interval);}" +
+          "else if(e.data&&e.data.cmd==='stop'){if(id)clearInterval(id);id=null;}" +
+          "};";
+        const blobUrl = URL.createObjectURL(
+          new Blob([workerSource], { type: "application/javascript" })
+        );
+        const worker = new Worker(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+        worker.onmessage = () => this._tick();
+        worker.postMessage({ cmd: "start", interval: intervalMs });
+        this._schedulerWorker = worker;
+        return;
+      } catch (err) {
+        this._schedulerWorker = null;
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("Scheduler Worker non disponibile, fallback su setTimeout", err);
+        }
+      }
+    }
+
+    const loop = () => {
+      this._schedulerTimeout = setTimeout(loop, intervalMs);
+      this._tick();
+    };
+    this._schedulerTimeout = setTimeout(loop, intervalMs);
+  }
+
+  _stopScheduler() {
+    if (this._schedulerWorker) {
+      try {
+        this._schedulerWorker.postMessage({ cmd: "stop" });
+        this._schedulerWorker.terminate();
+      } catch (err) {
+        // ignore
+      }
+      this._schedulerWorker = null;
+    }
+    if (this._schedulerTimeout) {
+      clearTimeout(this._schedulerTimeout);
+      this._schedulerTimeout = null;
+    }
   }
 
   _tick() {
@@ -510,7 +556,7 @@ export default class GranularEngine {
     }
 
     const now = this.audioContext.currentTime;
-    const lookAhead = 0.1;
+    const lookAhead = this._lookAhead ?? 0.2;
 
     this.slices.forEach(slice => {
       const sample = this.samples.get(slice.sampleId);
@@ -542,8 +588,6 @@ export default class GranularEngine {
 
       this._sliceTimers.set(slice.id, nextTime);
     });
-
-    this._animationFrame = requestAnimationFrame(this._tick);
   }
 
   _scheduleGrain(slice, time) {
